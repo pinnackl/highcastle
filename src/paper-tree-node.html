@@ -45,6 +45,9 @@ Custom property | Description | Default
       :host > .node-container > .node-row:hover {
         border: dotted 2px;
       }
+      :host > .node-container > .node-row:hover .node-ctn-action .mutate-btn  {
+        display: inline-block;
+      }
 
       .node-container {
         white-space: nowrap;
@@ -78,6 +81,24 @@ Custom property | Description | Default
         content: '\2212';
       }
 
+      .node-ctn-action {
+        font-size: 14px;
+      }
+      .node-ctn-action .mutate-btn {
+        display: none;
+        --paper-icon-button: {
+          width: 30px;
+          height: 30px;
+        };
+      }
+
+      .node-ctn-action .mutate-btn[icon=add] {
+        color: green;
+      }
+      .node-ctn-action .mutate-btn[icon=close] {
+        color: red;
+      }
+
       .node-preicon, .node-name {
         cursor: pointer;
       }
@@ -91,9 +112,9 @@ Custom property | Description | Default
 
       #actions {
         display: none;
-        float: right;
+        /*float: right;*/
         padding: 0;
-        top: -8px; /* cancel the padding of `paper-icon-button`. */
+        /*top: -8px;*/ /* cancel the padding of `paper-icon-button`. */
       }
 
       ul {
@@ -105,6 +126,10 @@ Custom property | Description | Default
         list-style-type: none;
       }
 
+      .edit-input {
+        display: inline-block;
+      }
+
       [hidden] {
         display: none;
       }
@@ -112,15 +137,23 @@ Custom property | Description | Default
     <div class="node-container">
       <div class="node-row">
         <template is="dom-if" if={{data.name}}>
-          <span class$="{{_computeClass(data.*)}}" on-tap="toggleChildren"></span>
+          <span class$="{{_computeClass(data.*)}}" on-tap="toggleChildren" hidden="{{!data.name}}"></span>
           <span class="node-name" on-tap="select">{{data.name}}</span>
         </template>
         <template is="dom-repeat" items={{_isSubLevel(data)}} as=item>
           <template is="dom-if" if={{item.key}}>
             <span class$="{{_computeClass(data.*)}}" on-tap="toggleChildren"></span>
-            <span class="node-name" on-tap="select">{{item.key}} : {{item.value}}</span>
+            <span class="node-name" on-tap="select">{{item.key}} : <input class="edit-input" placeholder="value" value="{{item.value}}"></input></span>
           </template>
         </template>
+        <span class="node-ctn-action">
+          <template is="dom-if" if=[[data.children]]>
+            <paper-icon-button class="mutate-btn" icon="add"></paper-icon-button>
+          </template>
+          <template is="dom-if" if={{_shouldDelete()}}>
+            <paper-icon-button class="mutate-btn" icon="close"></paper-icon-button>
+          </template>
+        </span>
         <template is="dom-if" if="{{actions}}">
           <paper-menu-button id="actions">
             <paper-icon-button icon="more-vert" noink slot="dropdown-trigger"></paper-icon-button>
@@ -183,7 +216,7 @@ Custom property | Description | Default
            * - `action.event`: string which is the event name to dispatch whenever the item is clicked.
            *
            */
-           actions: {
+          actions: {
             type: Array,
             value: function() {
               return null;
@@ -230,6 +263,10 @@ Custom property | Description | Default
           return this._json2array(data);
         }
         return false;
+      }
+
+      _shouldDelete() {
+        return this.data.hasOwnProperty("name") || (this._isSubLevel(this.data) && this._isSubLevel(this.data)[0] && this._isSubLevel(this.data)[0].key);
       }
 
       _json2array(data) {
