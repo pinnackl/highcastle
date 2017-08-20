@@ -1,0 +1,183 @@
+<link rel="import" href="../bower_components/polymer/polymer-element.html">
+<link rel="import" href="paper-tree-node.html">
+
+<!--
+`<paper-tree>` display a browsable tree of nodes (`<paper-tree-node>`) with expandable/collapsible capabilities and actions menu for each node.
+
+Example:
+
+    <paper-tree></paper-tree>
+
+@demo
+-->
+
+
+<dom-module id="paper-tree">
+  <template>
+    <div>
+      <paper-tree-node id="root" data="[[data]]" actions="[[actions]]"></paper-tree-node>
+    </div>
+  </template>
+
+  <script>
+    class PaperTree extends Polymer.Element {
+      static get is() { return 'paper-tree'; }
+      static get properties() {
+        return {
+          /**
+           * Data hold by the root node (contains the children).
+           *
+           * Specific data:
+           *
+           * - `data.name`: string representing the node name.
+           * - `data.icon`: string telling which icon to use (default to 'folder' icon).
+           * - `data.open`: boolean telling whether the node is expanded or not.
+           * - `data.children` array containing the children of the node.
+           */
+          data: {
+              type: Object,
+              value: function() {
+                  return null;
+              },
+              observer: "_dataChanged"
+          },
+
+          /**
+           * `selected` is the current selected `<paper-tree-node>` in the tree.
+           */
+          selected: {
+              type: Object,
+              value: null,
+              notify: true
+          },
+
+          /**
+           * `actions` available for all nodes. Each action object has the following fields:
+           *
+           * - `action.label`: string representing the display name of the menu item.
+           * - `action.event`: string which is the event name to dispatch whenever the item is clicked.
+           *
+           */
+          actions: {
+              type: Array,
+              value: function() {
+                  return null;
+              },
+              observer: "_actionsChanged"
+          }
+        };
+      }
+      static get observers() {
+        return [
+          '_dataChanged(data.*)'
+        ]
+      }
+      constructor() {
+        super();
+        // Add event listners
+        this.addEventListener("select", this._selectNode)
+      }
+      /**
+       * Called whenever the data is changed to notify the lower nodes.
+       */
+      _dataChanged() {
+          this.$.root.data = this._transpileFromJson(this.data);
+      }
+
+      /**
+       * Called whenever the actions list is changed to notify the lower nodes.
+       */
+      _actionsChanged() {
+          this.$.root.actions = this.actions;
+      }
+
+      /**
+       * Called when the `select` event is fired from an internal node.
+       *
+       * @param {object} e An event object.
+       */
+      _selectNode(e) {
+          if(this.selected) {
+              this.toggleClass("selected", false, this.selected);
+          }
+
+          // Only selects `<paper-tree-node>`.
+          if (e.detail && e.detail.tagName === 'PAPER-TREE-NODE') {
+              this.selected = e.detail;
+              this.toggleClass("selected", true, this.selected);
+          } else {
+              this.selected = null;
+          }
+      }
+
+      _transpileFromJson(data) {
+        // console.log(data);
+        // FIXME : Recusive transpiling
+        const transpiledObj = {};
+        transpiledObj.name = "My Database";
+        transpiledObj.open = true;
+        transpiledObj.children = [];
+        for (let key in data) {
+          const table = {};
+          table.name = key;
+          table.children = [];
+          const subArr = this._childLookUp(data[key]);
+          table.children = subArr;
+          transpiledObj.children.push(table);
+        }
+
+
+
+        // console.log(transpiledObj);
+        return transpiledObj;
+      }
+
+      _childLookUp(data) {
+        const arr = [];
+        data.forEach((el) => {
+
+          const doc = {};
+          // First level document
+          if (el.hasOwnProperty('id')) {
+            doc.children = [];
+            for (let key in el) {
+              // Handle document case
+              if (key == "id") {
+                doc.name = el[key];
+              } else {
+                let subDoc = {};
+                subDoc[key] = el[key]
+                doc.children.push(subDoc);
+              }
+            }
+            arr.push(doc);
+          }
+        });
+
+        return arr;
+      }
+
+      /**
+       * Toggles a CSS class on or off.
+       *
+       * @param {string} name CSS class name
+       * @param {boolean=} bool Boolean to force the class on or off.
+       *    When unspecified, the state of the class will be reversed.
+       * @param {Element=} node Node to target.  Defaults to `this`.
+       */
+      toggleClass(name, bool, node) {
+        node = /** @type {Element} */ (node || this);
+        if (arguments.length == 1) {
+          bool = !node.classList.contains(name);
+        }
+        if (bool) {
+          node.classList.add(name);
+        } else {
+          node.classList.remove(name);
+        }
+      }
+    }
+
+    window.customElements.define(PaperTree.is, PaperTree);
+  </script>
+</dom-module>
